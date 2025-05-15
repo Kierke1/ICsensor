@@ -36,18 +36,26 @@
       }
 
       const json = await response.json();
+      console.log("Fetched JSON:", json); // 🛠 See what's actually in the response
+
+      // ✅ Sanity check: does json.data exist?
+      if (!json.data || !Array.isArray(json.data)) {
+        throw new Error("Invalid or missing 'data' field in response");
+      }
+
       const data = json.data.filter(item => item.name === "IC#CON2");
       if (data.length === 0) {
         throw new Error("No data found for IC#CON2");
       }
 
-      // Sort by time
+      // Sort by received time (latest first)
       data.sort((a, b) => new Date(b.received_at) - new Date(a.received_at));
       const latest = data[0];
 
       document.getElementById("temp").textContent = latest.TempC_SHT.toFixed(1);
       document.getElementById("hum").textContent = latest.Hum_SHT.toFixed(1);
       document.getElementById("time").textContent = latest.received_at;
+
     } catch (error) {
       console.error("Error fetching or processing data:", error);
     }
