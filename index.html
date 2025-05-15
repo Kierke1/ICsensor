@@ -18,7 +18,7 @@
 </head>
 <body>
 
-  <h1>Latest Reading for IC#CON2</h1>
+  <h1>Laatest Reading for IC#CON2</h1>
   <div class="data-box">
     <p><strong>Temperature:</strong> <span id="temp">Loading...</span> °C</p>
     <p><strong>Humidity:</strong> <span id="hum">Loading...</span> %</p>
@@ -36,9 +36,8 @@
       }
 
       const json = await response.json();
-      console.log("Fetched JSON:", json); // 🛠 See what's actually in the response
+      console.log("Fetched JSON:", json);
 
-      // ✅ Sanity check: does json.data exist?
       if (!json.data || !Array.isArray(json.data)) {
         throw new Error("Invalid or missing 'data' field in response");
       }
@@ -48,7 +47,6 @@
         throw new Error("No data found for IC#CON2");
       }
 
-      // Sort by received time (latest first)
       data.sort((a, b) => new Date(b.received_at) - new Date(a.received_at));
       const latest = data[0];
 
@@ -63,6 +61,7 @@
 
   fetchLatestData();
 </script>
+
 
 
 </body>
