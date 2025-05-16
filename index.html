@@ -1,67 +1,89 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>IC#CON2 Sensor Data</title>
+  <meta charset="UTF-8">
+  <title>IC Sensor Readings</title>
   <style>
     body {
       font-family: Arial, sans-serif;
       padding: 20px;
     }
-    .data-box {
+    .sensor-box {
       border: 1px solid #ccc;
       padding: 15px;
+      margin-bottom: 20px;
       border-radius: 8px;
       max-width: 300px;
       background: #f9f9f9;
+    }
+    .sensor-title {
+      font-weight: bold;
+      font-size: 18px;
     }
   </style>
 </head>
 <body>
 
-  <h1>Latest Reading for IC#CON2</h1>
-  <div class="data-box">
-    <p><strong>Temperature:</strong> <span id="temp">Loading...</span> °C</p>
-    <p><strong>Humidity:</strong> <span id="hum">Loading...</span> %</p>
-    <p><strong>Time:</strong> <span id="time">Loading...</span></p>
+  <h1>Latest Sensor Readings</h1>
+
+  <div id="sensor-IC#CON1" class="sensor-box">
+    <div class="sensor-title">IC#CON1</div>
+    <p><strong>Temperature:</strong> <span class="temp">Loading...</span> °C</p>
+    <p><strong>Humidity:</strong> <span class="hum">Loading...</span> %</p>
+    <p><strong>Time:</strong> <span class="time">Loading...</span></p>
   </div>
 
-<script>
-  const url = "https://bumpy-elite-seahorse.glitch.me/proxy?apptoken=cebe600e-91af-45d7-93c6-c964ad77646a";
+  <div id="sensor-IC#CON2" class="sensor-box">
+    <div class="sensor-title">IC#CON2</div>
+    <p><strong>Temperature:</strong> <span class="temp">Loading...</span> °C</p>
+    <p><strong>Humidity:</strong> <span class="hum">Loading...</span> %</p>
+    <p><strong>Time:</strong> <span class="time">Loading...</span></p>
+  </div>
 
-  async function fetchLatestData() {
-    try {
-      const response = await fetch(url);
-      if (!response.ok) {
-        throw new Error("Network response was not OK");
+  <div id="sensor-IC#CON3" class="sensor-box">
+    <div class="sensor-title">IC#CON3</div>
+    <p><strong>Temperature:</strong> <span class="temp">Loading...</span> °C</p>
+    <p><strong>Humidity:</strong> <span class="hum">Loading...</span> %</p>
+    <p><strong>Time:</strong> <span class="time">Loading...</span></p>
+  </div>
+
+  <script>
+    const apiUrl = "https://bumpy-elite-seahorse.glitch.me/proxy?apptoken=cebe600e-91af-45d7-93c6-c964ad77646a";
+    const sensorNames = ["IC#CON1", "IC#CON2", "IC#CON3"];
+
+    async function fetchSensorData() {
+      try {
+        const response = await fetch(apiUrl);
+        if (!response.ok) throw new Error("Network response was not OK");
+        const json = await response.json();
+        if (!json.data || !Array.isArray(json.data)) throw new Error("Invalid or missing 'data' field in response");
+
+        sensorNames.forEach(sensorName => {
+          const sensorData = json.data
+            .filter(item => item.name === sensorName)
+            .sort((a, b) => new Date(b.received_at) - new Date(a.received_at))[0];
+
+          const box = document.getElementById(`sensor-${sensorName}`);
+          if (sensorData) {
+            box.querySelector(".temp").textContent = sensorData.TempC_SHT.toFixed(1);
+            box.querySelector(".hum").textContent = sensorData.Hum_SHT.toFixed(1);
+            box.querySelector(".time").textContent = sensorData.received_at;
+          } else {
+            box.querySelector(".temp").textContent = "No data";
+            box.querySelector(".hum").textContent = "No data";
+            box.querySelector(".time").textContent = "No data";
+          }
+        });
+
+      } catch (error) {
+        console.error("Error fetching or processing data:", error);
       }
-
-      const json = await response.json();
-      console.log("Fetched JSON:", json);
-
-      if (!json.data || !Array.isArray(json.data)) {
-        throw new Error("Invalid or missing 'data' field in response");
-      }
-
-      const data = json.data.filter(item => item.name === "IC#CON2");
-      if (data.length === 0) {
-        throw new Error("No data found for IC#CON2");
-      }
-
-      data.sort((a, b) => new Date(b.received_at) - new Date(a.received_at));
-      const latest = data[0];
-
-      document.getElementById("temp").textContent = latest.TempC_SHT.toFixed(1);
-      document.getElementById("hum").textContent = latest.Hum_SHT.toFixed(1);
-      document.getElementById("time").textContent = latest.received_at;
-
-    } catch (error) {
-      console.error("Error fetching or processing data:", error);
     }
-  }
 
-  fetchLatestData();
-</script>
-
+    fetchSensorData();
+    // Optionally refresh every 60 seconds
+    setInterval(fetchSensorData, 60000);
+  </script>
 
 </body>
 </html>
