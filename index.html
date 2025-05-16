@@ -92,7 +92,7 @@
           const humData = data.slice(-50).map(e => e.Hum_SHT);
 
           const canvas = document.createElement("canvas");
-          chartContainer.appendChild(document.createElement("h2")).textContent = `${sensor} - Last 50 Readings`;
+          chartContainer.appendChild(document.createElement("h2")).textContent = `${sensor} - Lastest Readings`;
           chartContainer.appendChild(canvas);
 
           new Chart(canvas, {
