@@ -2,104 +2,115 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>IC Sensor Readings</title>
+  <title>Sensor Graphs</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     body {
       font-family: Arial, sans-serif;
       padding: 20px;
     }
-    .sensor-box {
-      border: 1px solid #ccc;
-      padding: 15px;
-      margin-bottom: 20px;
-      border-radius: 8px;
-      max-width: 300px;
-      background: #f9f9f9;
+    canvas {
+      margin-bottom: 40px;
+      max-width: 100%;
     }
-    .sensor-title {
-      font-weight: bold;
-      font-size: 18px;
+    h2 {
+      margin-top: 50px;
     }
   </style>
 </head>
 <body>
 
-  <h1>Latest Sensor Readings</h1>
+  <h1>Sensor Readings Graph</h1>
+  <div id="charts"></div>
 
-  <div id="sensor-IC#CON1" class="sensor-box">
-    <div class="sensor-title">IC#CON1</div>
-    <p><strong>Temperature:</strong> <span class="temp">Loading...</span> °C</p>
-    <p><strong>Humidity:</strong> <span class="hum">Loading...</span> %</p>
-    <p><strong>Time:</strong> <span class="time">Loading...</span></p>
-  </div>
+  <script>
+    const apiUrl = "https://bumpy-elite-seahorse.glitch.me/proxy?apptoken=cebe600e-91af-45d7-93c6-c964ad77646a";
+    const sensorNames = ["IC#CON1", "IC#CON2", "IC#CON3"];
 
-  <div id="sensor-IC#CON2" class="sensor-box">
-    <div class="sensor-title">IC#CON2</div>
-    <p><strong>Temperature:</strong> <span class="temp">Loading...</span> °C</p>
-    <p><strong>Humidity:</strong> <span class="hum">Loading...</span> %</p>
-    <p><strong>Time:</strong> <span class="time">Loading...</span></p>
-  </div>
-
-  <div id="sensor-IC#CON3" class="sensor-box">
-    <div class="sensor-title">IC#CON3</div>
-    <p><strong>Temperature:</strong> <span class="temp">Loading...</span> °C</p>
-    <p><strong>Humidity:</strong> <span class="hum">Loading...</span> %</p>
-    <p><strong>Time:</strong> <span class="time">Loading...</span></p>
-  </div>
-
-<script>
-  const apiUrl = "https://bumpy-elite-seahorse.glitch.me/proxy?apptoken=cebe600e-91af-45d7-93c6-c964ad77646a";
-  const sensorNames = ["IC#CON1", "IC#CON2", "IC#CON3"];
-
-  function adjustTimeZoneAndFormat(isoString, offsetHours) {
-    const date = new Date(isoString);
-    date.setHours(date.getHours() + offsetHours);
-
-    const pad = num => String(num).padStart(2, '0');
-    const year = date.getFullYear();
-    const month = pad(date.getMonth() + 1);
-    const day = pad(date.getDate());
-    const hours = pad(date.getHours());
-    const minutes = pad(date.getMinutes());
-    const seconds = pad(date.getSeconds());
-
-    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
-  }
-
-  async function fetchSensorData() {
-    try {
-      const response = await fetch(apiUrl);
-      if (!response.ok) throw new Error("Network response was not OK");
-      const json = await response.json();
-      if (!json.data || !Array.isArray(json.data)) throw new Error("Invalid or missing 'data' field in response");
-
-      sensorNames.forEach(sensorName => {
-        const sensorData = json.data
-          .filter(item => item.name === sensorName)
-          .sort((a, b) => new Date(b.received_at) - new Date(a.received_at))[0];
-
-        const box = document.getElementById(`sensor-${sensorName}`);
-        if (sensorData) {
-          box.querySelector(".temp").textContent = sensorData.TempC_SHT.toFixed(1);
-          box.querySelector(".hum").textContent = sensorData.Hum_SHT.toFixed(1);
-          box.querySelector(".time").textContent = adjustTimeZoneAndFormat(sensorData.received_at, 2);
-        } else {
-          box.querySelector(".temp").textContent = "No data";
-          box.querySelector(".hum").textContent = "No data";
-          box.querySelector(".time").textContent = "No data";
-        }
-      });
-
-    } catch (error) {
-      console.error("Error fetching or processing data:", error);
+    function adjustTimeZoneAndFormat(isoString, offsetHours) {
+      const date = new Date(isoString);
+      date.setHours(date.getHours() + offsetHours);
+      return date.toISOString().slice(0, 19).replace("T", " ");
     }
-  }
 
-  fetchSensorData();
-  setInterval(fetchSensorData, 60000);
-</script>
+    async function fetchAndPlotData() {
+      try {
+        const response = await fetch(apiUrl);
+        if (!response.ok) throw new Error("Network response not OK");
+        const json = await response.json();
 
+        if (!json.data || !Array.isArray(json.data)) {
+          throw new Error("Invalid data format from API");
+        }
 
+        const container = document.getElementById("charts");
 
+        sensorNames.forEach(sensor => {
+          const data = json.data
+            .filter(entry => entry.name === sensor)
+            .sort((a, b) => new Date(a.received_at) - new Date(b.received_at))
+            .slice(-50); // last 50 entries
+
+          const labels = data.map(entry => adjustTimeZoneAndFormat(entry.received_at, 2));
+          const tempData = data.map(entry => entry.TempC_SHT);
+          const humData = data.map(entry => entry.Hum_SHT);
+
+          const canvas = document.createElement("canvas");
+          container.appendChild(document.createElement("h2")).textContent = sensor;
+          container.appendChild(canvas);
+
+          new Chart(canvas, {
+            type: "line",
+            data: {
+              labels,
+              datasets: [
+                {
+                  label: "Temperature (°C)",
+                  data: tempData,
+                  borderColor: "red",
+                  fill: false,
+                  tension: 0.3
+                },
+                {
+                  label: "Humidity (%)",
+                  data: humData,
+                  borderColor: "blue",
+                  fill: false,
+                  tension: 0.3
+                }
+              ]
+            },
+            options: {
+              responsive: true,
+              scales: {
+                x: {
+                  title: { display: true, text: "Time" },
+                  ticks: {
+                    maxTicksLimit: 10,
+                    autoSkip: true
+                  }
+                },
+                y: {
+                  title: { display: true, text: "Value" }
+                }
+              },
+              plugins: {
+                title: {
+                  display: true,
+                  text: `${sensor} - Last 50 Readings`
+                }
+              }
+            }
+          });
+        });
+
+      } catch (error) {
+        console.error("Error fetching or processing data:", error);
+        document.body.innerHTML += `<p style="color:red;">Error: ${error.message}</p>`;
+      }
+    }
+
+    fetchAndPlotData();
+  </script>
 </body>
 </html>
