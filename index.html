@@ -141,7 +141,12 @@
                       const label = this.getLabelForValue(value);
                       if (!label) return "";
                       const [date, time] = label.split(" ");
-                      return date + '\n' + time;
+                      // show only full hours (minutes and seconds = 00)
+                      if (time.endsWith(":00:00")) {
+                        return date + '\n' + time;
+                      } else {
+                        return '';
+                      }
                     }
                   }
                 },
