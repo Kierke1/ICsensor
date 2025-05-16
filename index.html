@@ -37,13 +37,9 @@
 
   <h1>Sensor Readings Dashboard</h1>
 
-  <div class="reading" id="latest-readings">
-    <!-- Latest readings will be inserted here -->
-  </div>
+  <div class="reading" id="latest-readings"></div>
 
-  <div id="charts">
-    <!-- Graphs will be inserted here -->
-  </div>
+  <div id="charts"></div>
 
   <script>
     const apiUrl = "https://bumpy-elite-seahorse.glitch.me/proxy?apptoken=cebe600e-91af-45d7-93c6-c964ad77646a";
@@ -137,16 +133,17 @@
                   ticks: {
                     maxTicksLimit: 10,
                     autoSkip: true,
-                    callback: function(value, index, ticks) {
+                    callback: function(value) {
                       const label = this.getLabelForValue(value);
                       if (!label) return "";
-                      const [date, time] = label.split(" ");
-                      // show only full hours (minutes and seconds = 00)
-                      if (time.endsWith(":00:00")) {
-                        return date + '\n' + time;
-                      } else {
-                        return '';
+                      const timePart = label.split(" ")[1];
+                      if (!timePart) return "";
+                      const [hh, mm, ss] = timePart.split(":").map(Number);
+                      if (mm === 0 && ss === 0) {
+                        const datePart = label.split(" ")[0];
+                        return datePart + '\n' + timePart;
                       }
+                      return "";
                     }
                   }
                 },
