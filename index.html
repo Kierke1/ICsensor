@@ -51,10 +51,19 @@
   const apiUrl = "https://bumpy-elite-seahorse.glitch.me/proxy?apptoken=cebe600e-91af-45d7-93c6-c964ad77646a";
   const sensorNames = ["IC#CON1", "IC#CON2", "IC#CON3"];
 
-  function adjustTimeZone(isoString, offsetHours) {
+  function adjustTimeZoneAndFormat(isoString, offsetHours) {
     const date = new Date(isoString);
     date.setHours(date.getHours() + offsetHours);
-    return date.toLocaleString(); // shows in local format
+
+    const pad = num => String(num).padStart(2, '0');
+    const year = date.getFullYear();
+    const month = pad(date.getMonth() + 1);
+    const day = pad(date.getDate());
+    const hours = pad(date.getHours());
+    const minutes = pad(date.getMinutes());
+    const seconds = pad(date.getSeconds());
+
+    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
   }
 
   async function fetchSensorData() {
@@ -73,7 +82,7 @@
         if (sensorData) {
           box.querySelector(".temp").textContent = sensorData.TempC_SHT.toFixed(1);
           box.querySelector(".hum").textContent = sensorData.Hum_SHT.toFixed(1);
-          box.querySelector(".time").textContent = adjustTimeZone(sensorData.received_at, 2); // add 2 hours
+          box.querySelector(".time").textContent = adjustTimeZoneAndFormat(sensorData.received_at, 2);
         } else {
           box.querySelector(".temp").textContent = "No data";
           box.querySelector(".hum").textContent = "No data";
@@ -89,6 +98,7 @@
   fetchSensorData();
   setInterval(fetchSensorData, 60000);
 </script>
+
 
 
 </body>
