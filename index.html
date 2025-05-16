@@ -1,169 +1,177 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+  <meta charset="UTF-8" />
   <title>Sensor Dashboard</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     body {
       font-family: Arial, sans-serif;
       padding: 20px;
+      max-width: 900px;
+      margin: auto;
     }
-    .data-box {
+    h1, h2 {
+      text-align: center;
+    }
+    .reading {
+      display: flex;
+      justify-content: space-around;
+      flex-wrap: wrap;
+      margin-bottom: 40px;
+    }
+    .sensor-block {
       border: 1px solid #ccc;
-      padding: 15px;
       border-radius: 8px;
-      max-width: 300px;
-      margin-bottom: 20px;
-      background: #f9f9f9;
-      display: inline-block;
-      margin-right: 20px;
+      padding: 10px 20px;
+      margin: 10px;
+      background-color: #f9f9f9;
     }
     canvas {
-      margin-bottom: 40px;
+      margin-bottom: 60px;
+      max-width: 100%;
     }
   </style>
 </head>
 <body>
 
-  <h1>Latest Sensor Readings</h1>
-  <div id="sensor-latest"></div>
+  <h1>Sensor Readings Dashboard</h1>
 
-  <h2>Graphs</h2>
-  <div>
-    <canvas id="chart-IC#CON1" width="600" height="300"></canvas>
-    <canvas id="chart-IC#CON2" width="600" height="300"></canvas>
-    <canvas id="chart-IC#CON3" width="600" height="300"></canvas>
-  </div>
+  <div class="reading" id="latest-readings"></div>
+
+  <div id="charts"></div>
 
   <script>
-    const url = "https://bumpy-elite-seahorse.glitch.me/proxy?apptoken=cebe600e-91af-45d7-93c6-c964ad77646a";
+    const apiUrl = "https://bumpy-elite-seahorse.glitch.me/proxy?apptoken=cebe600e-91af-45d7-93c6-c964ad77646a";
+    const sensorNames = ["IC#CON1", "IC#CON2", "IC#CON3"];
 
-    function adjustTimeZoneAndFormat(dateStr) {
-      const date = new Date(dateStr);
-      date.setHours(date.getHours() + 2); // UTC+2
-      return date.toISOString().replace("T", " ").substring(0, 19);
+    function adjustTimeZoneAndFormat(isoString, offsetHours) {
+      const date = new Date(isoString);
+      date.setHours(date.getHours() + offsetHours);
+      return date.toISOString().slice(0, 19).replace("T", " ");
     }
 
-    async function fetchAndDisplayData() {
+    async function fetchDataAndRender() {
       try {
-        const response = await fetch(url);
-        if (!response.ok) throw new Error("Failed to fetch");
+        const response = await fetch(apiUrl);
+        if (!response.ok) throw new Error("Network error");
         const json = await response.json();
-        const sensorNames = ["IC#CON1", "IC#CON2", "IC#CON3"];
-        const latestContainer = document.getElementById("sensor-latest");
+        if (!json.data || !Array.isArray(json.data)) throw new Error("Invalid data");
 
-        sensorNames.forEach(name => {
-          const sensorData = json.data
-            .filter(d => d.name === name)
-            .sort((a, b) => new Date(b.received_at) - new Date(a.received_at));
+        const latestContainer = document.getElementById("latest-readings");
+        const chartContainer = document.getElementById("charts");
 
-          if (!sensorData.length) return;
+        sensorNames.forEach(sensor => {
+          const data = json.data
+            .filter(entry => entry.name === sensor)
+            .sort((a, b) => new Date(a.received_at) - new Date(b.received_at));
 
-          const latest = sensorData[0];
+          if (data.length === 0) return;
 
-          const box = document.createElement("div");
-          box.className = "data-box";
-          box.innerHTML = `
-            <h3>${name}</h3>
+          const latest = data[data.length - 1];
+          const formattedTime = adjustTimeZoneAndFormat(latest.received_at, 2);
+
+          // Add latest reading
+          const block = document.createElement("div");
+          block.className = "sensor-block";
+          block.innerHTML = `
+            <h3>${sensor}</h3>
+            <p><strong>Time:</strong> ${formattedTime}</p>
             <p><strong>Temperature:</strong> ${latest.TempC_SHT.toFixed(1)} °C</p>
             <p><strong>Humidity:</strong> ${latest.Hum_SHT.toFixed(1)} %</p>
-            <p><strong>Time:</strong> ${adjustTimeZoneAndFormat(latest.received_at)}</p>
           `;
-          latestContainer.appendChild(box);
+          latestContainer.appendChild(block);
 
-          drawChart(name, sensorData);
+          // Prepare graph data
+          const labels = data.slice(-50).map(e => adjustTimeZoneAndFormat(e.received_at, 2));
+          const tempData = data.slice(-50).map(e => e.TempC_SHT);
+          const humData = data.slice(-50).map(e => e.Hum_SHT);
+
+          // Create canvas and title for graph
+          const title = document.createElement("h2");
+          title.textContent = `${sensor} - Latest Readings`;
+          chartContainer.appendChild(title);
+
+          const canvas = document.createElement("canvas");
+          chartContainer.appendChild(canvas);
+
+          new Chart(canvas, {
+            type: 'line',
+            data: {
+              labels,
+              datasets: [
+                {
+                  label: "Temperature (°C)",
+                  data: tempData,
+                  yAxisID: 'yTemp',
+                  borderColor: "red",
+                  backgroundColor: "rgba(255,0,0,0.1)",
+                  fill: false,
+                  tension: 0.3
+                },
+                {
+                  label: "Humidity (%)",
+                  data: humData,
+                  yAxisID: 'yHum',
+                  borderColor: "blue",
+                  backgroundColor: "rgba(0,0,255,0.1)",
+                  fill: false,
+                  tension: 0.3
+                }
+              ]
+            },
+            options: {
+              responsive: true,
+              interaction: {
+                mode: 'index',
+                intersect: false
+              },
+              stacked: false,
+              scales: {
+                x: {
+                  title: {
+                    display: true,
+                    text: "Time"
+                  },
+                  ticks: {
+                    maxTicksLimit: 10,
+                    autoSkip: true,
+                    callback: function(value) {
+                      return this.getLabelForValue(value);
+                    }
+                  }
+                },
+
+                yTemp: {
+                  type: 'linear',
+                  position: 'left',
+                  title: { display: true, text: 'Temperature (°C)' },
+                  min: 20,
+                  max: 50,
+                  ticks: { color: "red" }
+                },
+                yHum: {
+                  type: 'linear',
+                  position: 'right',
+                  title: { display: true, text: 'Humidity (%)' },
+                  min: 50,
+                  max: 100,
+                  grid: { drawOnChartArea: false },
+                  ticks: { color: "blue" }
+                }
+              }
+            }
+          });
         });
 
       } catch (err) {
-        console.error("Error:", err);
+        console.error("Failed to load data:", err);
+        document.body.innerHTML += `<p style="color:red;">Error: ${err.message}</p>`;
       }
     }
 
-    function drawChart(sensorName, data) {
-      const ctx = document.getElementById(`chart-${sensorName}`).getContext("2d");
-      const labels = data.map(entry => adjustTimeZoneAndFormat(entry.received_at));
-      const tempData = data.map(entry => entry.TempC_SHT);
-      const humData = data.map(entry => entry.Hum_SHT);
-
-      new Chart(ctx, {
-        type: 'line',
-        data: {
-          labels: labels,
-          datasets: [
-            {
-              label: "Temperature (°C)",
-              data: tempData,
-              borderColor: "red",
-              yAxisID: 'y-temp',
-              tension: 0.3,
-              pointRadius: 0
-            },
-            {
-              label: "Humidity (%)",
-              data: humData,
-              borderColor: "blue",
-              yAxisID: 'y-hum',
-              tension: 0.3,
-              pointRadius: 0
-            }
-          ]
-        },
-        options: {
-          responsive: true,
-          plugins: {
-            title: {
-              display: true,
-              text: `${sensorName} - Latest Readings`
-            },
-            legend: {
-              position: 'top'
-            }
-          },
-          scales: {
-            x: {
-              title: {
-                display: true,
-                text: 'Date & Time'
-              },
-              ticks: {
-                callback: function(value, index, ticks) {
-                  const ts = this.getLabelForValue(value);
-                  const [date, time] = ts.split(' ');
-                  return date + '\n' + time;
-                },
-                maxRotation: 0,
-                minRotation: 0
-              }
-            },
-            'y-temp': {
-              type: 'linear',
-              position: 'left',
-              min: 20,
-              max: 50,
-              title: {
-                display: true,
-                text: 'Temperature (°C)'
-              }
-            },
-            'y-hum': {
-              type: 'linear',
-              position: 'right',
-              min: 50,
-              max: 100,
-              title: {
-                display: true,
-                text: 'Humidity (%)'
-              },
-              grid: {
-                drawOnChartArea: false
-              }
-            }
-          }
-        }
-      });
-    }
-
-    fetchAndDisplayData();
+    fetchDataAndRender();
   </script>
+
 </body>
 </html>
