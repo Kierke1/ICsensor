@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Sensor Dashboard</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
@@ -91,8 +91,12 @@
           const tempData = data.slice(-50).map(e => e.TempC_SHT);
           const humData = data.slice(-50).map(e => e.Hum_SHT);
 
+          // Create canvas and title for graph
+          const title = document.createElement("h2");
+          title.textContent = `${sensor} - Latest Readings`;
+          chartContainer.appendChild(title);
+
           const canvas = document.createElement("canvas");
-          chartContainer.appendChild(document.createElement("h2")).textContent = `${sensor} - Lastest Readings`;
           chartContainer.appendChild(canvas);
 
           new Chart(canvas, {
@@ -130,7 +134,16 @@
               scales: {
                 x: {
                   title: { display: true, text: "Time" },
-                  ticks: { maxTicksLimit: 10, autoSkip: true }
+                  ticks: {
+                    maxTicksLimit: 10,
+                    autoSkip: true,
+                    callback: function(value, index, ticks) {
+                      const label = this.getLabelForValue(value);
+                      if (!label) return "";
+                      const [date, time] = label.split(" ");
+                      return date + '\n' + time;
+                    }
+                  }
                 },
                 yTemp: {
                   type: 'linear',
@@ -162,5 +175,6 @@
 
     fetchDataAndRender();
   </script>
+
 </body>
 </html>
