@@ -134,7 +134,7 @@
                     maxTicksLimit: 10,
                     autoSkip: true,
                     callback: function(value) {
-                      const label = this.getLabelForValue(value);
+                      const label = this.chart.data.labels[value];
                       if (!label) return "";
                       const timePart = label.split(" ")[1];
                       if (!timePart) return "";
@@ -147,6 +147,7 @@
                     }
                   }
                 },
+
                 yTemp: {
                   type: 'linear',
                   position: 'left',
