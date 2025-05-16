@@ -129,21 +129,15 @@
               stacked: false,
               scales: {
                 x: {
-                  title: { display: true, text: "Time" },
+                  title: {
+                    display: true,
+                    text: "Time"
+                  },
                   ticks: {
                     maxTicksLimit: 10,
                     autoSkip: true,
                     callback: function(value) {
-                      const label = this.chart.data.labels[value];
-                      if (!label) return "";
-                      const timePart = label.split(" ")[1];
-                      if (!timePart) return "";
-                      const [hh, mm, ss] = timePart.split(":").map(Number);
-                      if (mm === 0 && ss === 0) {
-                        const datePart = label.split(" ")[0];
-                        return datePart + '\n' + timePart;
-                      }
-                      return "";
+                      return this.getLabelForValue(value);
                     }
                   }
                 },
