@@ -31,14 +31,20 @@
       margin-bottom: 60px;
       max-width: 100%;
     }
+    #loading {
+      font-size: 18px;
+      font-weight: bold;
+      text-align: center;
+      margin-bottom: 20px;
+      color: #555;
+    }
   </style>
 </head>
 <body>
 
   <h1>Sensor Readings Dashboard</h1>
-
+  <div id="loading">Loading data - wait ≈10 seconds…</div>
   <div class="reading" id="latest-readings"></div>
-
   <div id="charts"></div>
 
   <script>
@@ -60,6 +66,8 @@
 
         const latestContainer = document.getElementById("latest-readings");
         const chartContainer = document.getElementById("charts");
+        const loadingMessage = document.getElementById("loading");
+        loadingMessage.style.display = "none";
 
         sensorNames.forEach(sensor => {
           const data = json.data
@@ -141,7 +149,6 @@
                     }
                   }
                 },
-
                 yTemp: {
                   type: 'linear',
                   position: 'left',
@@ -166,7 +173,7 @@
 
       } catch (err) {
         console.error("Failed to load data:", err);
-        document.body.innerHTML += `<p style="color:red;">Error: ${err.message}</p>`;
+        document.getElementById("loading").innerHTML = `<p style="color:red;">Error: ${err.message}</p>`;
       }
     }
 
